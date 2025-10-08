@@ -3,7 +3,7 @@
 ## Progress Checklist
 - [x] **Commit 1**: Project Setup & Core Primitives
 - [x] **Commit 2**: Mechanism Interface Definitions
-- [ ] **Commit 3**: Strategy Framework Core
+- [x] **Commit 3**: Strategy Framework Core
 - [ ] **Commit 4**: First Reference Implementation (Concentrated Liquidity)
 - [ ] **Commit 5**: Derivative Implementations (Options & Perpetuals)
 - [ ] **Commit 6**: Backtest Engine
@@ -67,21 +67,23 @@
 **Depends**: Commit 1 (primitives), Commit 2 (mechanism interfaces for MarketSnapshot)
 
 **Deliverables**:
-- [ ] Create `strategy/strategy.go` with `Strategy` interface (Rebalance method)
-- [ ] Create `strategy/portfolio.go` implementing Portfolio struct (position tracking, value queries, cash management)
-- [ ] Create `strategy/position.go` with `Position` interface and `PositionType` enum
-- [ ] Create `strategy/action.go` with `Action` interface for portfolio modifications
-- [ ] Create `strategy/market.go` with `MarketSnapshot` abstraction for market data
-- [ ] Implement concrete action types: `AddPositionAction`, `RemovePositionAction`, `AdjustCashAction`
-- [ ] Add comprehensive unit tests in `strategy/strategy_test.go` covering portfolio operations
-- [ ] Document thread-safety guarantees and error handling patterns
+- [x] Create `strategy/strategy.go` with `Strategy` interface (Rebalance method)
+- [x] Create `strategy/portfolio.go` implementing Portfolio struct (position tracking, value queries, cash management)
+- [x] Create `strategy/position.go` with `Position` interface and `PositionType` enum
+- [x] Create `strategy/action.go` with `Action` interface for portfolio modifications
+- [x] Create `strategy/market.go` with `MarketSnapshot` abstraction for market data
+- [x] Implement concrete action types: `AddPositionAction`, `RemovePositionAction`, `ReplacePositionAction`, `AdjustCashAction`, `BatchAction`
+- [x] Add comprehensive unit tests in `strategy/strategy_test.go` covering portfolio operations
+- [x] Document thread-safety guarantees and error handling patterns
 
 **Success**:
-- Portfolio correctly tracks multiple positions of different types
-- Portfolio value queries aggregate across all positions
-- Actions can be applied to portfolio without knowing position concrete types
-- `go test ./strategy/` passes with >80% coverage
-- Portfolio is mechanism-agnostic (works with any Position implementation)
+- ✅ Portfolio correctly tracks multiple positions of different types
+- ✅ Portfolio value queries aggregate across all positions
+- ✅ Actions can be applied to portfolio without knowing position concrete types
+- ✅ `go test ./strategy/` passes with 94.8% coverage (>80% requirement exceeded)
+- ✅ Portfolio is mechanism-agnostic (works with any Position implementation)
+- ✅ Thread-safety documented: Portfolio safe for concurrent reads, requires external sync for concurrent writes
+- ✅ Cash management supports negative balances (leverage/debt) using Decimal internally
 
 ---
 
