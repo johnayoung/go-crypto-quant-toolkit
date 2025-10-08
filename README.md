@@ -68,30 +68,72 @@ go get github.com/johnayoung/go-crypto-quant-toolkit
 
 ## Quick Start
 
-### Using Primitives
+Get started in 5 minutes with these examples.
+
+### 1. Install
+
+```bash
+go get github.com/johnayoung/go-crypto-quant-toolkit
+```
+
+### 2. Use Type-Safe Primitives
 
 ```go
 import "github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 
 // Create type-safe financial values
-price := primitives.MustPrice(primitives.NewDecimal(1999))
-amount := primitives.MustAmount(primitives.NewDecimal(10))
+price := primitives.MustPrice(primitives.MustDecimal("1999.50"))
+amount := primitives.MustAmount(primitives.MustDecimal("10.5"))
 
 // Type-safe operations
-totalValue := amount.MulPrice(price) // Amount * Price = Amount (in currency units)
+totalValue := amount.MulPrice(price) // Amount × Price = Amount
 // price.Add(amount) // ❌ Won't compile - cannot add Price and Amount
+
+// Precise decimal arithmetic (no float64!)
+newPrice := price.Mul(primitives.MustDecimal("1.05")) // 5% increase
 ```
 
-### Implementing a Strategy
+### 3. Use Existing Mechanisms
 
 ```go
 import (
-    "context"
+    "github.com/johnayoung/go-crypto-quant-toolkit/pkg/implementations/concentrated_liquidity"
+    "github.com/johnayoung/go-crypto-quant-toolkit/pkg/mechanisms"
+)
+
+// Create a Uniswap V3-style concentrated liquidity pool
+pool, _ := concentrated_liquidity.NewPool(
+    "usdc-eth-pool",
+    common.HexToAddress("0xA0b8..."), // USDC address
+    6,  // USDC decimals
+    common.HexToAddress("0xC02a..."), // WETH address
+    18, // WETH decimals
+    constants.FeeAmount(3000), // 0.3% fee
+)
+
+// Calculate pool state
+state, _ := pool.Calculate(ctx, mechanisms.PoolParams{
+    ReserveA: primitives.MustAmount(primitives.MustDecimal("1000000")),
+    ReserveB: primitives.MustAmount(primitives.MustDecimal("500")),
+    Metadata: map[string]interface{}{
+        "current_tick": 85176,
+        "sqrt_price_x96": sqrtPriceX96,
+    },
+})
+
+fmt.Printf("Spot price: %s\n", state.SpotPrice.Decimal())
+```
+
+### 4. Build a Strategy
+
+```go
+import (
     "github.com/johnayoung/go-crypto-quant-toolkit/pkg/strategy"
+    "github.com/johnayoung/go-crypto-quant-toolkit/pkg/mechanisms"
 )
 
 type MyStrategy struct {
-    // Your strategy state
+    pool mechanisms.LiquidityPool
 }
 
 func (s *MyStrategy) Rebalance(
@@ -99,59 +141,116 @@ func (s *MyStrategy) Rebalance(
     portfolio *strategy.Portfolio,
     market strategy.MarketSnapshot,
 ) ([]strategy.Action, error) {
-    // Analyze market conditions
-    // Calculate desired positions
-    // Return actions to modify portfolio
+    // Get current portfolio value
+    value, _ := portfolio.TotalValue(market)
+    
+    // Your strategy logic here
+    // Return actions to modify positions
+    
     return []strategy.Action{}, nil
 }
 ```
 
-### Adding a Custom Mechanism
-
-The framework is designed for extensibility. You can add new market mechanisms without modifying any framework code:
+### 5. Run a Backtest
 
 ```go
-// 1. Define your mechanism implementing a framework interface
-type MyCustomPool struct {
-    // Your fields
-}
+import "github.com/johnayoung/go-crypto-quant-toolkit/pkg/backtest"
 
-// 2. Implement the LiquidityPool interface (or define your own)
-func (p *MyCustomPool) Calculate(params mechanisms.PoolParams) (mechanisms.PoolState, error) {
-    // Your custom logic
-}
+// Create engine with initial cash
+engine := backtest.NewEngine(
+    primitives.MustAmount(primitives.MustDecimal("100000")), // $100k
+    backtest.WithLogging(true),
+)
 
-// 3. Use it in strategies - framework automatically supports it
+// Run strategy over historical data
+result, _ := engine.Run(ctx, myStrategy, marketDataEvents)
+
+// Analyze results
+fmt.Printf("Total Return: %s%%\n", result.TotalReturn.Mul(primitives.MustDecimal("100")))
+fmt.Printf("Sharpe Ratio: %s\n", result.SharpeRatio)
+fmt.Printf("Max Drawdown: %s%%\n", result.MaxDrawdown.Mul(primitives.MustDecimal("100")))
 ```
 
-See `examples/custom_mechanism/` for a complete working example.
+### 6. Add Your Own Mechanism
+
+```go
+// 1. Implement the interface
+type MyCustomPool struct {
+    poolID   string
+    tokenA   string
+    tokenB   string
+    feeRate  primitives.Decimal
+}
+
+// 2. Implement required methods
+func (p *MyCustomPool) Mechanism() mechanisms.MechanismType {
+    return mechanisms.MechanismTypeLiquidityPool
+}
+
+func (p *MyCustomPool) Calculate(ctx context.Context, params mechanisms.PoolParams) (mechanisms.PoolState, error) {
+    // Your custom pricing logic
+    price, _ := params.ReserveB.Decimal().Div(params.ReserveA.Decimal())
+    
+    return mechanisms.PoolState{
+        SpotPrice: primitives.MustPrice(price),
+        Liquidity: params.ReserveA,
+        // ... other fields
+    }, nil
+}
+
+// 3. Use it anywhere - framework automatically supports it!
+```
+
+See **[examples/custom_mechanism](examples/custom_mechanism/)** for a complete working example (~365 lines).
+
+### Learn More
+
+- **[EXTENDING.md](docs/EXTENDING.md)** - Complete guide to adding new mechanisms
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Understand the design philosophy
+- **[examples/](examples/)** - Three complete working examples
 
 ## Project Status
 
-**Current Phase**: MVP Development
+**Current Phase**: ✅ MVP Complete
 
 ### Completed
-- ✅ Core primitives (Price, Amount, Decimal, Time, Duration)
-- ✅ Type-safe arithmetic with >94% test coverage
-- ✅ Go module setup with decimal dependency
+- ✅ Core primitives (Price, Amount, Decimal, Time, Duration) - 94.2% coverage
+- ✅ Mechanism interface definitions (LiquidityPool, Derivative, OrderBook)
+- ✅ Strategy framework (Portfolio, Position, Action, Strategy) - 94.8% coverage
+- ✅ Reference implementations:
+  - Concentrated Liquidity (Uniswap V3-style) - 78% coverage
+  - Black-Scholes Options - 82.9% coverage
+  - Perpetual Futures - 82.9% coverage
+- ✅ Event-driven backtest engine - 83.6% coverage
+- ✅ Complete examples (simple LP, delta-neutral, custom mechanism)
+- ✅ Integration tests validating multi-mechanism strategies
+- ✅ Comprehensive documentation
 
-### In Progress
-- 🚧 Mechanism interface definitions
-- 🚧 Strategy framework core
-- 🚧 Reference implementations
-
-### Planned
-- ⏳ Backtest engine
-- ⏳ Examples and integration tests
-- ⏳ Comprehensive documentation
-
-See [ROADMAP.md](docs/ROADMAP.md) for detailed implementation plan.
+See [ROADMAP.md](docs/ROADMAP.md) for detailed implementation history.
 
 ## Documentation
 
-- [Technical Specification](docs/SPEC.md) - Architecture and design decisions
-- [Implementation Roadmap](docs/ROADMAP.md) - Development plan and progress
+- **[Quick Start Guide](#quick-start)** - Get started in 5 minutes
+- **[Extending the Framework](docs/EXTENDING.md)** - Step-by-step guide for adding new mechanisms
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Design philosophy and component relationships
+- [Technical Specification](docs/SPEC.md) - Complete technical specification
+- [Implementation Roadmap](docs/ROADMAP.md) - Development history and progress
 - [Project Brief](docs/BRIEF.md) - Original project vision
+
+### Examples
+
+All examples are fully functional and can be run directly:
+
+- **[Simple LP Strategy](examples/simple_lp/)** - Basic liquidity pool strategy with backtesting
+- **[Delta-Neutral Strategy](examples/delta_neutral/)** - Multi-mechanism strategy (LP + perpetual hedge)
+- **[Custom Mechanism](examples/custom_mechanism/)** - Adding a new mechanism without framework changes
+
+```bash
+# Run any example
+go run examples/simple_lp/main.go
+go run examples/delta_neutral/main.go
+go run examples/custom_mechanism/main.go
+```
 
 ## Design Principles
 
@@ -174,12 +273,30 @@ Minimize dependencies. Only add external libraries when necessary.
 
 We welcome contributions! The framework is specifically designed to be extended by the community with:
 
-- New market mechanism implementations
+- **New market mechanism implementations** - See [EXTENDING.md](docs/EXTENDING.md) for step-by-step guide
 - Additional reference strategies
 - Enhanced analytics and risk metrics
 - Performance optimizations
 
-Please see `CONTRIBUTING.md` (coming soon) for guidelines.
+### How to Contribute
+
+1. **Read the guides**:
+   - [EXTENDING.md](docs/EXTENDING.md) - Adding new mechanisms (4-step process)
+   - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Understanding the design
+
+2. **Follow best practices**:
+   - Use `primitives.Decimal` for all financial calculations (never `float64`)
+   - Achieve >80% test coverage for new implementations
+   - Validate against reference values when implementing known protocols
+   - Document all public types and methods with godoc
+
+3. **Submit your work**:
+   - Fork the repository
+   - Create a feature branch
+   - Add comprehensive tests
+   - Submit a pull request with clear description
+
+See [examples/custom_mechanism](examples/custom_mechanism/) for a complete example of adding a new mechanism.
 
 ## Testing
 
