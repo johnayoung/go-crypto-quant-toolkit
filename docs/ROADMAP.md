@@ -9,6 +9,13 @@
 - [x] **Commit 6**: Backtest Engine
 - [x] **Commit 7**: Examples & Integration Tests
 - [x] **Commit 8**: Documentation & Extensibility Guide
+- [ ] **Commit 9**: Position Layer Foundation
+- [ ] **Commit 10**: Core Position Implementations
+- [ ] **Commit 11**: Lending Protocol Support
+- [ ] **Commit 12**: Position Lifecycle & State Management
+- [ ] **Commit 13**: Refactor Implementations to Position-First
+- [ ] **Commit 14**: CLASSIC Delta-Neutral Example
+- [ ] **Commit 15**: Documentation Updates
 
 ## Implementation Sequence
 
@@ -360,8 +367,190 @@ The go-crypto-quant-toolkit MVP is complete and ready for:
 - Event-driven backtest engine working with any mechanism combination
 - Type-safe financial primitives preventing calculation errors
 
-**Next Steps** (Post-MVP):
-- Community contributions for additional mechanism implementations
+---
+
+### Commit 9: Position Layer Foundation
+
+**Goal**: Create foundational position abstractions with state management capabilities
+
+**Depends**: Commit 8 (completed MVP)
+
+**Deliverables**:
+- [ ] Create `pkg/positions/` package with core types
+- [ ] Create `pkg/positions/base.go` with `AbstractPosition` interface
+- [ ] Create `pkg/positions/portfolio.go` moving Portfolio from strategy (maintain backward compat shim)
+- [ ] Create `pkg/positions/spot.go` with `SpotPosition` implementation
+- [ ] Create `pkg/positions/bicurrency.go` with `BiCurrencyPosition` for swap-enabled vaults
+- [ ] Create `pkg/positions/events.go` for position lifecycle event tracking
+- [ ] Add comprehensive tests in `pkg/positions/positions_test.go`
+- [ ] Document position state management patterns in godoc
+
+**Success**:
+- [ ] SpotPosition correctly tracks holdings and value
+- [ ] BiCurrencyPosition handles swaps with fees
+- [ ] Event tracking captures position lifecycle
+- [ ] Portfolio backward compatibility maintained in strategy package
+- [ ] `go test ./pkg/positions/` passes with >80% coverage
+- [ ] Existing examples still work unchanged
+
+---
+
+### Commit 10: Core Position Implementations
+
+**Goal**: Implement position wrappers for existing mechanisms with full state tracking
+
+**Depends**: Commit 9 (position foundation)
+
+**Deliverables**:
+- [ ] Create `pkg/positions/concentrated_lp.go` with `UniV3Position`
+- [ ] Create `pkg/positions/perpetual.go` with `PerpetualPosition`
+- [ ] Create `pkg/positions/option.go` with `OptionPosition`
+- [ ] Add lifecycle methods: `Open()`, `Modify()`, `Close()` to each position type
+- [ ] Implement state tracking: deposits, withdrawals, fees, PnL
+- [ ] Add tests validating state transitions and calculations
+- [ ] Document position-specific risk calculations in godoc
+
+**Success**:
+- [ ] UniV3Position tracks liquidity, fees, and IL through mint/burn cycles
+- [ ] PerpetualPosition accurately calculates PnL and liquidation prices
+- [ ] OptionPosition handles Greeks and time decay
+- [ ] All position modifications create event entries
+- [ ] State transitions validated (e.g., can't burn more liquidity than exists)
+- [ ] `go test ./pkg/positions/` passes with >85% coverage
+- [ ] Position calculations match mechanism calculations
+
+---
+
+### Commit 11: Lending Protocol Support
+
+**Goal**: Add lending/borrowing capabilities enabling complex DeFi strategies
+
+**Depends**: Commit 10 (core positions)
+
+**Deliverables**:
+- [ ] Create `pkg/mechanisms/lending.go` with `LendingProtocol` interface
+- [ ] Create `pkg/positions/lending.go` with `LendingPosition` implementation
+- [ ] Implement supply, borrow, health factor, liquidation price calculations
+- [ ] Add rewards tracking and claiming logic
+- [ ] Create `pkg/implementations/aave/calculator.go` with Aave V3 calculator
+- [ ] Add comprehensive tests including health factor edge cases
+- [ ] Document lending position risk management in godoc
+
+**Success**:
+- [ ] LendingPosition correctly calculates health factors across multiple assets
+- [ ] Health factor approaches infinity with no debt, approaches zero near liquidation
+- [ ] Liquidation price calculations match expected values (±0.1%)
+- [ ] Interest accrual works correctly over time
+- [ ] Rewards tracking handles multiple reward tokens
+- [ ] Cannot borrow beyond health factor threshold
+- [ ] `go test ./pkg/positions/ ./pkg/implementations/aave/` passes with >80% coverage
+
+---
+
+### Commit 12: Position Lifecycle & State Management
+
+**Goal**: Add advanced position management features supporting complex strategies
+
+**Depends**: Commit 11 (lending positions)
+
+**Deliverables**:
+- [ ] Create `pkg/positions/manager.go` for coordinating position operations
+- [ ] Add position serialization/deserialization for persistence
+- [ ] Implement position history tracking with snapshots
+- [ ] Add position constraints and validation rules
+- [ ] Create position builder pattern for complex position creation
+- [ ] Add tests for edge cases and error conditions
+- [ ] Document position lifecycle best practices in godoc
+
+**Success**:
+- [ ] PositionManager correctly tracks multiple positions
+- [ ] Serialization round-trips preserve all position state
+- [ ] History tracking captures position evolution over time
+- [ ] Validation catches invalid states (negative liquidity, invalid health factors)
+- [ ] Builder pattern simplifies complex position creation
+- [ ] `go test ./pkg/positions/` passes with >85% coverage
+
+---
+
+### Commit 13: Refactor Implementations to Position-First
+
+**Goal**: Migrate existing implementations to separate calculator and position concerns
+
+**Depends**: Commit 12 (position lifecycle)
+
+**Deliverables**:
+- [ ] Refactor `pkg/implementations/concentrated_liquidity/` to separate calculator and position
+- [ ] Create `pkg/implementations/concentrated_liquidity/calculator.go` (stateless LiquidityPool)
+- [ ] Update `pkg/positions/concentrated_lp.go` to use calculator
+- [ ] Refactor perpetual and options implementations similarly
+- [ ] Update existing examples to use new position types
+- [ ] Add migration notes in CONTRIBUTING.md
+- [ ] Ensure all existing tests still pass
+
+**Success**:
+- [ ] All mechanism implementations are stateless calculators
+- [ ] All position state lives in position types
+- [ ] Examples demonstrate position-first approach
+- [ ] Backward compatibility maintained (old interfaces still work)
+- [ ] All existing tests pass unchanged
+- [ ] New position-based tests added
+- [ ] `go test ./...` passes with >85% coverage
+
+---
+
+### Commit 14: CLASSIC Delta-Neutral Example
+
+**Goal**: Demonstrate complex multi-protocol strategy using position composition
+
+**Depends**: Commit 13 (refactored implementations)
+
+**Deliverables**:
+- [ ] Create `examples/classic_delta_neutral/main.go`
+- [ ] Implement full CLASSIC strategy flow: supply USDC → borrow ETH → swap → short perp → monitor health → rebalance → claim rewards
+- [ ] Add `examples/classic_delta_neutral/README.md` with strategy explanation
+- [ ] Include risk monitoring and emergency procedures
+- [ ] Add comprehensive comments explaining each step
+- [ ] Demonstrate position composition patterns
+
+**Success**:
+- [ ] Example runs successfully with `go run examples/classic_delta_neutral/main.go`
+- [ ] Strategy demonstrates multi-protocol position composition (<500 lines)
+- [ ] Health factor monitoring prevents liquidations
+- [ ] Delta rebalancing maintains neutrality
+- [ ] Rewards claiming and compounding work correctly
+- [ ] README explains strategy mechanics clearly
+- [ ] Example serves as template for complex DeFi strategies
+
+---
+
+### Commit 15: Documentation Updates
+
+**Goal**: Update documentation to reflect position-first architecture
+
+**Depends**: Commit 14 (CLASSIC example)
+
+**Deliverables**:
+- [ ] Update `docs/SPEC.md` with position-first architecture details
+- [ ] Update `docs/ARCHITECTURE.md` with position layer explanation
+- [ ] Update `docs/EXTENDING.md` with position extension patterns
+- [ ] Update `README.md` with new examples and architecture overview
+- [ ] Add architectural diagrams showing position layer
+- [ ] Update all godoc comments for new packages
+- [ ] Review and update all code examples in documentation
+
+**Success**:
+- [ ] SPEC.md accurately reflects position-first architecture
+- [ ] ARCHITECTURE.md explains position layer design decisions
+- [ ] EXTENDING.md shows how to add new position types
+- [ ] All documentation cross-references updated
+- [ ] Architectural diagrams clearly show position layer separation
+- [ ] README.md quick start uses position-first approach
+- [ ] All godoc comments reviewed and updated
+
+---
+
+**Next Steps** (Post-Refactor):
+- Community contributions for additional position types and protocols
 - Performance optimizations and benchmarking
 - Advanced analytics and risk metrics
 - Integration with data providers and execution venues

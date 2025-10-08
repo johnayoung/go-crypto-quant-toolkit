@@ -35,15 +35,25 @@
 - Property-based tests for interface contracts
 - Integration tests validating extensibility
 
-## Architecture: Interface-First Design
+## Architecture: Position-First Design
 
-**Key Principle:** Define contracts, not implementations. Users compose strategies from any implementations of these contracts.
+**Key Principle:** Mechanisms are stateless calculators, Positions are stateful containers, Strategies are composers.
+
+**Architecture Evolution:**
+- **v1.0 (MVP)**: Mechanism-first - strategies directly use mechanism interfaces
+- **v2.0 (Commits 9-15)**: Position-first - positions wrap mechanisms and manage state
+
+The position-first architecture emerged from analyzing complex strategies (see CLASSIC delta-neutral in `docs/strategies/delta-neutral/CLASSIC.md`). Real strategies require:
+1. **State management** - Track collateral, debt, fees, PnL across protocols
+2. **Lifecycle operations** - Open, modify, close with validation
+3. **Protocol-specific logic** - Health factors, liquidation prices, rewards
+4. **Natural composition** - Combine positions like building blocks
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        USER CODE                             │
 │  • Implements Strategy interface                            │
-│  • Chooses market mechanism implementations                 │
+│  • Composes positions from building blocks                  │
 │  • Provides market data                                     │
 └────────────────┬────────────────────────────────────────────┘
                  │
@@ -57,20 +67,30 @@
 │  └──────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │         Portfolio (Framework-Provided)                │  │
-│  │  Tracks positions, cash, queries values              │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         Position Interface (User Implements)          │  │
-│  │  Value(market) → Amount                              │  │
-│  │  Risk() → RiskMetrics                                │  │
+│  │         Portfolio (Position Container)                │  │
+│  │  Aggregates positions, calculates total value        │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            MARKET MECHANISM INTERFACES                       │
+│           POSITION LAYER (Stateful Building Blocks)          │
+│                    Commits 9-12                              │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │UniV3Position │  │LendingPosition│ │PerpetualPos  │     │
+│  │              │  │               │  │              │     │
+│  │• Mint()      │  │• Supply()     │  │• Open()      │     │
+│  │• Burn()      │  │• Borrow()     │  │• Close()     │     │
+│  │• Fees        │  │• Health()     │  │• PnL         │     │
+│  │• IL          │  │• Rewards      │  │• Funding     │     │
+│  └──────┬───────┘  └──────┬────────┘  └──────┬───────┘     │
+│         │uses              │uses               │uses         │
+└─────────┼──────────────────┼───────────────────┼─────────────┘
+          │                  │                   │
+          ▼                  ▼                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│     MARKET MECHANISM INTERFACES (Stateless Calculators)      │
 │         (Framework defines, users implement)                 │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
@@ -79,40 +99,44 @@
 │  └──────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐   │
-│  │LiquidityPool │  │  Derivative  │  │  OrderBook     │   │
+│  │LiquidityPool │  │  Derivative  │  │LendingProtocol │   │
 │  │  Interface   │  │  Interface   │  │  Interface     │   │
-│  │              │  │              │  │                │   │
-│  │ • Calculate  │  │ • Price      │  │ • BestBid/Ask │   │
-│  │ • AddLiq     │  │ • Greeks     │  │ • Place Order │   │
-│  │ • RemoveLiq  │  │ • Settle     │  │ • Cancel      │   │
+│  │              │  │              │  │  (Commit 11)   │   │
+│  │ • Calculate  │  │ • Price      │  │ • SupplyAPY   │   │
+│  │ • AddLiq     │  │ • Greeks     │  │ • BorrowAPY   │   │
+│  │ • RemoveLiq  │  │ • Settle     │  │ • Health      │   │
 │  └──────────────┘  └──────────────┘  └────────────────┘   │
 │                                                              │
-│  Users can add: BatchAuction, FlashLoan, IntentPool, etc.  │
+│  ┌──────────────┐  ┌──────────────┐                        │
+│  │  OrderBook   │  │BiCurrencyVlt │  • More to come...    │
+│  │  Interface   │  │  (Swaps)     │                        │
+│  └──────────────┘  └──────────────┘                        │
 └────────────────┬────────────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│         REFERENCE IMPLEMENTATIONS (MVP: 2-3)                 │
+│         REFERENCE IMPLEMENTATIONS                            │
+│         (Calculators used by Positions)                      │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │    ConcentratedLiquidityPool (LiquidityPool impl)    │  │
-│  │    • Demonstrates LiquidityPool interface            │  │
-│  │    • Provides tick math, IL calculations             │  │
+│  │  concentrated_liquidity/calculator.go                 │  │
+│  │    → Implements LiquidityPool (stateless)            │  │
+│  │    → Used by: UniV3Position                          │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │    BlackScholesOption (Derivative impl)              │  │
-│  │    • Demonstrates Derivative interface               │  │
-│  │    • Provides pricing, Greeks                        │  │
+│  │  aave/calculator.go (Commit 11)                       │  │
+│  │    → Implements LendingProtocol (stateless)          │  │
+│  │    → Used by: LendingPosition                        │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                              │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │    PerpetualFuture (Derivative impl)                 │  │
-│  │    • Demonstrates Derivative interface               │  │
-│  │    • Provides funding rate calculations              │  │
+│  │  perpetual/future.go                                  │  │
+│  │    → Implements Derivative (stateless)               │  │
+│  │    → Used by: PerpetualPosition                      │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                              │
-│  Community adds: ConstantProduct, OrderBook, FlashLoan...   │
+│  Community adds: More calculators + position types...       │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -123,8 +147,16 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                   BACKTEST ENGINE                            │
 │  Event loop: Data → Strategy.Rebalance() → Portfolio       │
+│  (Position-agnostic, works with any position types)         │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Key Architectural Features:**
+
+1. **Separation of Concerns**: Mechanisms calculate, Positions manage state
+2. **Composability**: Build complex strategies by combining position types
+3. **Extensibility**: Add new position types or mechanisms independently
+4. **Type Safety**: All financial math uses primitives.Decimal
 
 ## Core Interfaces (Framework Contract)
 
@@ -253,30 +285,46 @@ All components live under `pkg/` following Go best practices for library project
 - Type-safe arithmetic preventing invalid operations
 
 ### pkg/mechanisms/
-**Purpose:** Define mechanism interface contracts
+**Purpose:** Define mechanism interface contracts (stateless calculators)
 **Exports:**
 - `MarketMechanism` (base interface)
 - `LiquidityPool` (AMM contract)
 - `Derivative` (options, perps contract)
+- `LendingProtocol` (supply/borrow contract) - Commit 11
 - `OrderBook` (CEX-style contract)
 **Post-MVP:** Community adds BatchAuction, FlashLoan, etc.
 
+### pkg/positions/ (Commits 9-12)
+**Purpose:** Composable position implementations with state management
+**Exports:**
+- `AbstractPosition` interface (extends strategy.Position)
+- `Portfolio` (moved from strategy, backward compatible)
+- `UniV3Position` (concentrated liquidity with mint/burn/fees)
+- `LendingPosition` (supply/borrow with health factor)
+- `PerpetualPosition` (long/short with funding/PnL)
+- `OptionPosition` (calls/puts with Greeks)
+- `SpotPosition` (simple holdings)
+- `BiCurrencyPosition` (token pair with swaps)
+- `PositionManager` (coordinates position operations)
+
 ### pkg/implementations/
-**Purpose:** Reference implementations of mechanism interfaces
-**Exports (MVP):**
-- `ConcentratedLiquidityPool` (implements LiquidityPool)
-- `BlackScholesOption` (implements Derivative)
-- `PerpetualFuture` (implements Derivative)
+**Purpose:** Reference implementations of mechanism interfaces (calculators)
+**Exports (v1.0-v2.0):**
+- `concentrated_liquidity/calculator.go` (implements LiquidityPool) - Commit 13
+- `aave/calculator.go` (implements LendingProtocol) - Commit 11
+- `blackscholes/option.go` (implements Derivative)
+- `perpetual/future.go` (implements Derivative)
+**Note:** Commit 13 refactors to separate calculator (stateless) from position (stateful)
 **Post-MVP:** Community adds more
 
 ### pkg/strategy/
-**Purpose:** Strategy framework (portfolio, positions, actions)
+**Purpose:** Strategy framework (strategy interface, actions, market data)
 **Exports:**
 - `Strategy` interface
-- `Portfolio` (position tracking)
-- `Position` interface
+- `Position` interface (base, extended by positions package)
 - `Action` interface
 - `MarketSnapshot` (market data abstraction)
+**Note:** Portfolio moved to `pkg/positions/` in Commit 9 (backward compatible shim maintained)
 
 ### pkg/backtest/
 **Purpose:** Event-driven backtesting engine
@@ -298,9 +346,12 @@ go-crypto-quant-toolkit/
 │
 ├── docs/                      # Design and user documentation
 │   ├── BRIEF.md
-│   ├── SPEC.md
-│   ├── EXTENDING.md          # How to add mechanisms
-│   └── ARCHITECTURE.md        # Design decisions
+│   ├── SPEC.md               # Technical spec & architecture (this file)
+│   ├── ROADMAP.md            # Implementation roadmap
+│   ├── EXTENDING.md          # How to add mechanisms & positions
+│   └── strategies/
+│       └── delta-neutral/
+│           └── CLASSIC.md    # Complex strategy reference
 │
 ├── pkg/                       # Public library code (importable by external projects)
 │   ├── primitives/
@@ -308,35 +359,48 @@ go-crypto-quant-toolkit/
 │   │   ├── time.go           # Time types
 │   │   └── primitives_test.go
 │   │
-│   ├── mechanisms/            # Interface definitions only
+│   ├── mechanisms/            # Interface definitions (stateless calculators)
 │   │   ├── mechanism.go      # Base MarketMechanism
 │   │   ├── liquidity_pool.go # LiquidityPool interface
 │   │   ├── derivative.go     # Derivative interface
+│   │   ├── lending.go        # LendingProtocol interface (Commit 11)
 │   │   ├── orderbook.go      # OrderBook interface
 │   │   └── mechanisms_test.go # Interface contract tests
 │   │
-│   ├── implementations/       # Reference implementations
+│   ├── positions/             # Position implementations (Commits 9-12)
+│   │   ├── base.go           # AbstractPosition interface
+│   │   ├── portfolio.go      # Portfolio (moved from strategy)
+│   │   ├── spot.go           # SpotPosition
+│   │   ├── bicurrency.go     # BiCurrencyPosition (swaps)
+│   │   ├── concentrated_lp.go # UniV3Position
+│   │   ├── perpetual.go      # PerpetualPosition
+│   │   ├── option.go         # OptionPosition
+│   │   ├── lending.go        # LendingPosition
+│   │   ├── manager.go        # PositionManager
+│   │   ├── events.go         # PositionEvent tracking
+│   │   └── positions_test.go
+│   │
+│   ├── implementations/       # Reference implementations (calculators)
 │   │   ├── concentrated_liquidity/
-│   │   │   ├── pool.go       # Implements LiquidityPool
-│   │   │   ├── tick_math.go  # Tick calculations
-│   │   │   ├── il.go         # Impermanent loss
+│   │   │   ├── calculator.go # LiquidityPool impl (Commit 13)
 │   │   │   └── pool_test.go
+│   │   ├── aave/             # (Commit 11)
+│   │   │   ├── calculator.go # LendingProtocol impl
+│   │   │   └── aave_test.go
 │   │   ├── blackscholes/
-│   │   │   ├── option.go     # Implements Derivative
-│   │   │   ├── greeks.go     # Greeks calculations
+│   │   │   ├── option.go     # Derivative impl
 │   │   │   └── option_test.go
 │   │   └── perpetual/
-│   │       ├── future.go     # Implements Derivative
-│   │       ├── funding.go    # Funding rate logic
+│   │       ├── future.go     # Derivative impl
 │   │       └── future_test.go
 │   │
 │   ├── strategy/
 │   │   ├── strategy.go       # Strategy interface
-│   │   ├── portfolio.go      # Portfolio management
-│   │   ├── position.go       # Position interface
+│   │   ├── position.go       # Position interface (base)
 │   │   ├── action.go         # Action interface
 │   │   ├── market.go         # MarketSnapshot
 │   │   └── strategy_test.go
+│   │   # Note: Portfolio moved to pkg/positions/ (Commit 9)
 │   │
 │   └── backtest/
 │       ├── engine.go         # Backtest orchestration
@@ -349,6 +413,9 @@ go-crypto-quant-toolkit/
     │   └── README.md
     ├── delta_neutral/
     │   ├── main.go           # LP + perp hedge
+    │   └── README.md
+    ├── classic_delta_neutral/ # (Commit 14)
+    │   ├── main.go           # Full CLASSIC strategy (lending+LP+perp)
     │   └── README.md
     └── custom_mechanism/
         ├── main.go           # Shows adding new mechanism
