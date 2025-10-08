@@ -1,0 +1,100 @@
+# golangci-lint configuration for go-crypto-quant-toolkit
+# Run with: golangci-lint run
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - govet          # Vet examines Go source code and reports suspicious constructs
+    - staticcheck    # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
+    - errcheck       # Errcheck checks that you checked errors
+    - gosec          # Security problems
+    - gofmt          # Gofmt checks whether code was gofmt-ed
+    - goimports      # Check import statements are formatted according to the 'goimport' command
+    - misspell       # Finds commonly misspelled English words in comments
+    - revive         # Fast, configurable, extensible, flexible, and beautiful linter for Go
+    - unconvert      # Remove unnecessary type conversions
+    - unparam        # Reports unused function parameters
+    - ineffassign    # Detects when assignments to existing variables are not used
+    - goconst        # Finds repeated strings that could be replaced by a constant
+    - gocyclo        # Computes and checks the cyclomatic complexity of functions
+    - gosimple       # Linter for Go source code that specializes in simplifying code
+    - unused         # Checks Go code for unused constants, variables, functions and types
+
+linters-settings:
+  govet:
+    check-shadowing: true
+    enable-all: true
+  
+  staticcheck:
+    checks: ["all"]
+  
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  
+  gosec:
+    excludes:
+      - G404  # Use of weak random number generator (math/rand instead of crypto/rand)
+  
+  goimports:
+    local-prefixes: github.com/johnayoung/go-crypto-quant-toolkit
+  
+  revive:
+    confidence: 0.8
+    rules:
+      - name: exported
+        disabled: false
+      - name: package-comments
+        disabled: false
+      - name: var-naming
+        disabled: false
+      - name: indent-error-flow
+        disabled: false
+      - name: error-return
+        disabled: false
+      - name: error-strings
+        disabled: false
+      - name: error-naming
+        disabled: false
+  
+  gocyclo:
+    min-complexity: 15
+  
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+        - goconst
+    
+    # Exclude known false positives
+    - linters:
+        - staticcheck
+      text: "SA9003:"  # Empty branch
+    
+    # Allow shadowing in short variable declarations for error handling
+    - linters:
+        - govet
+      text: "shadow: declaration of \"err\""
+  
+  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
+  max-issues-per-linter: 0
+  
+  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
