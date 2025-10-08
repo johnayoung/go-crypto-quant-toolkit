@@ -2,7 +2,7 @@
 
 ## Progress Checklist
 - [x] **Commit 1**: Project Setup & Core Primitives
-- [ ] **Commit 2**: Mechanism Interface Definitions
+- [x] **Commit 2**: Mechanism Interface Definitions
 - [ ] **Commit 3**: Strategy Framework Core
 - [ ] **Commit 4**: First Reference Implementation (Concentrated Liquidity)
 - [ ] **Commit 5**: Derivative Implementations (Options & Perpetuals)
@@ -44,19 +44,19 @@
 **Depends**: Commit 1 (primitives for method signatures)
 
 **Deliverables**:
-- [ ] Create `mechanisms/mechanism.go` with base `MarketMechanism` interface
-- [ ] Create `mechanisms/liquidity_pool.go` with `LiquidityPool` interface (Calculate, AddLiquidity, RemoveLiquidity methods)
-- [ ] Create `mechanisms/derivative.go` with `Derivative` interface (Price, Greeks, Settle methods)
-- [ ] Create `mechanisms/orderbook.go` with `OrderBook` interface (BestBid, BestAsk, PlaceOrder, CancelOrder methods)
-- [ ] Define supporting types: `PoolParams`, `PoolState`, `TokenAmounts`, `PriceParams`, `Greeks`, `Order`, `OrderID`
-- [ ] Create `mechanisms/mechanisms_test.go` with property-based test framework for interface contract validation (actual tests added when implementations exist)
-- [ ] Document interface contracts with godoc comments including expected behaviors and error conditions
+- [x] Create `mechanisms/mechanism.go` with base `MarketMechanism` interface
+- [x] Create `mechanisms/liquidity_pool.go` with `LiquidityPool` interface (Calculate, AddLiquidity, RemoveLiquidity methods)
+- [x] Create `mechanisms/derivative.go` with `Derivative` interface (Price, Greeks, Settle methods)
+- [x] Create `mechanisms/orderbook.go` with `OrderBook` interface (BestBid, BestAsk, PlaceOrder, CancelOrder methods)
+- [x] Define supporting types: `PoolParams`, `PoolState`, `TokenAmounts`, `PriceParams`, `Greeks`, `Order`, `OrderID`
+- [x] Create `mechanisms/mechanisms_test.go` with property-based test framework for interface contract validation (actual tests added when implementations exist)
+- [x] Document interface contracts with godoc comments including expected behaviors and error conditions
 
 **Success**:
-- All interface methods have clear godoc comments describing contracts
-- Supporting types use primitives (Price, Amount, Decimal) consistently
-- `go build ./mechanisms/` succeeds with no implementation dependencies
-- Interfaces are minimal (1-4 methods per interface) and composable
+- ✅ All interface methods have clear godoc comments describing contracts
+- ✅ Supporting types use primitives (Price, Amount, Decimal) consistently
+- ✅ `go build ./mechanisms/` succeeds with no implementation dependencies
+- ✅ Interfaces are minimal (3-4 methods per interface) and composable
 
 ---
 
