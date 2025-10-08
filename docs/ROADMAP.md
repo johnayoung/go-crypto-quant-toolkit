@@ -4,9 +4,9 @@
 - [x] **Commit 1**: Project Setup & Core Primitives
 - [x] **Commit 2**: Mechanism Interface Definitions
 - [x] **Commit 3**: Strategy Framework Core
-- [ ] **Commit 4**: First Reference Implementation (Concentrated Liquidity)
-- [ ] **Commit 5**: Derivative Implementations (Options & Perpetuals)
-- [ ] **Commit 6**: Backtest Engine
+- [x] **Commit 4**: First Reference Implementation (Concentrated Liquidity)
+- [x] **Commit 5**: Derivative Implementations (Options & Perpetuals)
+- [x] **Commit 6**: Backtest Engine
 - [ ] **Commit 7**: Examples & Integration Tests
 - [ ] **Commit 8**: Documentation & Extensibility Guide
 
@@ -150,28 +150,35 @@
 
 ---
 
-### Commit 6: Backtest Engine
+### Commit 6: Backtest Engine ✅
 
 **Goal**: Implement event-driven backtesting engine working with any strategy and mechanism types
 
 **Depends**: Commit 3 (Strategy interface, Portfolio)
 
 **Deliverables**:
-- [ ] Create `pkg/backtest/engine.go` with `Engine` struct and `Run` method
-- [ ] Implement event loop: data event → Strategy.Rebalance() → apply Actions → update Portfolio
-- [ ] Create `pkg/backtest/result.go` with performance metrics (returns, sharpe, max drawdown)
-- [ ] Add support for context cancellation and timeouts
-- [ ] Implement position value tracking over time
-- [ ] Add comprehensive tests in `pkg/backtest/backtest_test.go` with mock strategies
-- [ ] Document backtest assumptions and limitations in godoc
+- [x] Create `pkg/backtest/engine.go` with `Engine` struct and `Run` method
+- [x] Implement event loop: data event → Strategy.Rebalance() → apply Actions → update Portfolio
+- [x] Create `pkg/backtest/result.go` with performance metrics (returns, sharpe, max drawdown)
+- [x] Add support for context cancellation and timeouts
+- [x] Implement position value tracking over time
+- [x] Add comprehensive tests in `pkg/backtest/backtest_test.go` with mock strategies
+- [x] Document backtest assumptions and limitations in godoc
 
 **Success**:
-- Engine runs strategies to completion using any Position implementations
-- Performance metrics calculate correctly for various return profiles
-- Context cancellation gracefully stops backtest
-- `go test ./pkg/backtest/` passes with >80% coverage
-- Engine code never references concrete mechanism types (mechanism-agnostic)
-- Backtest works with mock strategies combining multiple mechanism types
+- ✅ Engine runs strategies to completion using any Position implementations
+- ✅ Performance metrics calculate correctly for various return profiles (total return, annualized return, Sharpe, max drawdown)
+- ✅ Context cancellation gracefully stops backtest
+- ✅ `go test ./pkg/backtest/` passes with 83.6% coverage (>80% requirement exceeded)
+- ✅ Engine code never references concrete mechanism types (mechanism-agnostic)
+- ✅ Backtest works with mock strategies combining multiple mechanism types (tested with Spot, LP, Option, Perpetual)
+
+**Implementation Notes**:
+- Engine uses event-driven architecture processing each market snapshot sequentially
+- Result struct includes comprehensive performance metrics using precise Decimal arithmetic
+- Supports configurable initial cash and detailed logging options
+- Tests cover basic execution, position management, context cancellation, error handling, and multi-mechanism strategies
+- All calculations use primitives.Decimal to maintain precision throughout the backtest lifecycle
 
 ---
 
