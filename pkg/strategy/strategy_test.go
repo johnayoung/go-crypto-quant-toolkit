@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 )
 
 // mockPosition is a test implementation of the Position interface

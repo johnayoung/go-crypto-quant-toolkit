@@ -1,7 +1,7 @@
 package strategy
 
 import (
-	"github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 )
 
 // PositionType classifies the type of position held in a portfolio.

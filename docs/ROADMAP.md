@@ -21,16 +21,16 @@
 **Deliverables**:
 - [x] Initialize Go module with `go.mod` and `go.sum`
 - [x] Add `github.com/shopspring/decimal` dependency
-- [x] Create `primitives/types.go` with Price, Amount, Decimal wrapper types
-- [x] Create `primitives/time.go` with Time and Duration types
+- [x] Create `pkg/primitives/types.go` with Price, Amount, Decimal wrapper types
+- [x] Create `pkg/primitives/time.go` with Time and Duration types
 - [x] Implement type-safe arithmetic preventing invalid operations (e.g., Price + Amount = compile error)
-- [x] Add comprehensive unit tests for all primitive types in `primitives/primitives_test.go`
-- [x] Create `.golangci.yml` configuration file for linting standards
+- [x] Add comprehensive unit tests for all primitive types in `pkg/primitives/primitives_test.go`
 - [x] Create basic `README.md` with project vision and extensibility focus
 - [x] Add `LICENSE` file
+- [x] Refactor to golang-standards/project-layout structure with `pkg/` for public library code
 
 **Success**:
-- ✅ `go test ./primitives/` passes with 94.2% coverage (>80% requirement exceeded)
+- ✅ `go test ./pkg/primitives/` passes with 94.2% coverage (>80% requirement exceeded)
 - ✅ All primitive types use `decimal.Decimal` internally (no float64 for money)
 - ✅ Type system prevents invalid operations at compile time
 - ✅ `go build ./...` succeeds with zero dependencies beyond shopspring/decimal
@@ -44,18 +44,18 @@
 **Depends**: Commit 1 (primitives for method signatures)
 
 **Deliverables**:
-- [x] Create `mechanisms/mechanism.go` with base `MarketMechanism` interface
-- [x] Create `mechanisms/liquidity_pool.go` with `LiquidityPool` interface (Calculate, AddLiquidity, RemoveLiquidity methods)
-- [x] Create `mechanisms/derivative.go` with `Derivative` interface (Price, Greeks, Settle methods)
-- [x] Create `mechanisms/orderbook.go` with `OrderBook` interface (BestBid, BestAsk, PlaceOrder, CancelOrder methods)
+- [x] Create `pkg/mechanisms/mechanism.go` with base `MarketMechanism` interface
+- [x] Create `pkg/mechanisms/liquidity_pool.go` with `LiquidityPool` interface (Calculate, AddLiquidity, RemoveLiquidity methods)
+- [x] Create `pkg/mechanisms/derivative.go` with `Derivative` interface (Price, Greeks, Settle methods)
+- [x] Create `pkg/mechanisms/orderbook.go` with `OrderBook` interface (BestBid, BestAsk, PlaceOrder, CancelOrder methods)
 - [x] Define supporting types: `PoolParams`, `PoolState`, `TokenAmounts`, `PriceParams`, `Greeks`, `Order`, `OrderID`
-- [x] Create `mechanisms/mechanisms_test.go` with property-based test framework for interface contract validation (actual tests added when implementations exist)
+- [x] Create `pkg/mechanisms/mechanisms_test.go` with property-based test framework for interface contract validation (actual tests added when implementations exist)
 - [x] Document interface contracts with godoc comments including expected behaviors and error conditions
 
 **Success**:
 - ✅ All interface methods have clear godoc comments describing contracts
 - ✅ Supporting types use primitives (Price, Amount, Decimal) consistently
-- ✅ `go build ./mechanisms/` succeeds with no implementation dependencies
+- ✅ `go build ./pkg/mechanisms/` succeeds with no implementation dependencies
 - ✅ Interfaces are minimal (3-4 methods per interface) and composable
 
 ---
@@ -67,20 +67,20 @@
 **Depends**: Commit 1 (primitives), Commit 2 (mechanism interfaces for MarketSnapshot)
 
 **Deliverables**:
-- [x] Create `strategy/strategy.go` with `Strategy` interface (Rebalance method)
-- [x] Create `strategy/portfolio.go` implementing Portfolio struct (position tracking, value queries, cash management)
-- [x] Create `strategy/position.go` with `Position` interface and `PositionType` enum
-- [x] Create `strategy/action.go` with `Action` interface for portfolio modifications
-- [x] Create `strategy/market.go` with `MarketSnapshot` abstraction for market data
+- [x] Create `pkg/strategy/strategy.go` with `Strategy` interface (Rebalance method)
+- [x] Create `pkg/strategy/portfolio.go` implementing Portfolio struct (position tracking, value queries, cash management)
+- [x] Create `pkg/strategy/position.go` with `Position` interface and `PositionType` enum
+- [x] Create `pkg/strategy/action.go` with `Action` interface for portfolio modifications
+- [x] Create `pkg/strategy/market.go` with `MarketSnapshot` abstraction for market data
 - [x] Implement concrete action types: `AddPositionAction`, `RemovePositionAction`, `ReplacePositionAction`, `AdjustCashAction`, `BatchAction`
-- [x] Add comprehensive unit tests in `strategy/strategy_test.go` covering portfolio operations
+- [x] Add comprehensive unit tests in `pkg/strategy/strategy_test.go` covering portfolio operations
 - [x] Document thread-safety guarantees and error handling patterns
 
 **Success**:
 - ✅ Portfolio correctly tracks multiple positions of different types
 - ✅ Portfolio value queries aggregate across all positions
 - ✅ Actions can be applied to portfolio without knowing position concrete types
-- ✅ `go test ./strategy/` passes with 94.8% coverage (>80% requirement exceeded)
+- ✅ `go test ./pkg/strategy/` passes with 94.8% coverage (>80% requirement exceeded)
 - ✅ Portfolio is mechanism-agnostic (works with any Position implementation)
 - ✅ Thread-safety documented: Portfolio safe for concurrent reads, requires external sync for concurrent writes
 - ✅ Cash management supports negative balances (leverage/debt) using Decimal internally
@@ -94,11 +94,11 @@
 **Depends**: Commit 2 (LiquidityPool interface), Commit 3 (Position interface)
 
 **Deliverables**:
-- [ ] Create `implementations/concentrated_liquidity/pool.go` implementing `LiquidityPool` interface
-- [ ] Create `implementations/concentrated_liquidity/tick_math.go` with tick-based calculations
-- [ ] Create `implementations/concentrated_liquidity/il.go` with impermanent loss calculations
+- [ ] Create `pkg/implementations/concentrated_liquidity/pool.go` implementing `LiquidityPool` interface
+- [ ] Create `pkg/implementations/concentrated_liquidity/tick_math.go` with tick-based calculations
+- [ ] Create `pkg/implementations/concentrated_liquidity/il.go` with impermanent loss calculations
 - [ ] Implement `PoolPosition` type that satisfies `Position` interface
-- [ ] Add comprehensive tests in `implementations/concentrated_liquidity/pool_test.go`
+- [ ] Add comprehensive tests in `pkg/implementations/concentrated_liquidity/pool_test.go`
 - [ ] Validate calculations against Uniswap V3 reference values (0.01% tolerance)
 - [ ] Document precision requirements and rounding behavior in godoc
 
@@ -106,7 +106,7 @@
 - Pool calculations match Uniswap V3 contracts within 0.01% tolerance
 - Pool correctly implements LiquidityPool interface (passes mechanism contract tests)
 - PoolPosition correctly implements Position interface (integrates with Portfolio)
-- `go test ./implementations/concentrated_liquidity/` passes with >80% coverage
+- `go test ./pkg/implementations/concentrated_liquidity/` passes with >80% coverage
 - Zero changes required to framework code (validates extensibility)
 
 ---
@@ -118,12 +118,12 @@
 **Depends**: Commit 2 (Derivative interface), Commit 3 (Position interface)
 
 **Deliverables**:
-- [ ] Create `implementations/blackscholes/option.go` implementing `Derivative` interface
-- [ ] Create `implementations/blackscholes/greeks.go` with Greeks calculations (delta, gamma, theta, vega, rho)
-- [ ] Create `implementations/perpetual/future.go` implementing `Derivative` interface
-- [ ] Create `implementations/perpetual/funding.go` with funding rate logic
+- [ ] Create `pkg/implementations/blackscholes/option.go` implementing `Derivative` interface
+- [ ] Create `pkg/implementations/blackscholes/greeks.go` with Greeks calculations (delta, gamma, theta, vega, rho)
+- [ ] Create `pkg/implementations/perpetual/future.go` implementing `Derivative` interface
+- [ ] Create `pkg/implementations/perpetual/funding.go` with funding rate logic
 - [ ] Implement position types for both derivatives satisfying `Position` interface
-- [ ] Add comprehensive tests in `implementations/blackscholes/option_test.go` and `implementations/perpetual/future_test.go`
+- [ ] Add comprehensive tests in `pkg/implementations/blackscholes/option_test.go` and `pkg/implementations/perpetual/future_test.go`
 - [ ] Validate Black-Scholes against published financial engineering test cases
 - [ ] Document settlement and funding rate formulas
 
@@ -133,7 +133,7 @@
 - Perpetual funding rates calculate correctly for various scenarios
 - Both implementations satisfy Derivative interface contract
 - Both position types integrate with Portfolio without framework changes
-- `go test ./implementations/...` passes with >80% coverage across all implementations
+- `go test ./pkg/implementations/...` passes with >80% coverage across all implementations
 
 ---
 
@@ -144,19 +144,19 @@
 **Depends**: Commit 3 (Strategy interface, Portfolio)
 
 **Deliverables**:
-- [ ] Create `backtest/engine.go` with `Engine` struct and `Run` method
+- [ ] Create `pkg/backtest/engine.go` with `Engine` struct and `Run` method
 - [ ] Implement event loop: data event → Strategy.Rebalance() → apply Actions → update Portfolio
-- [ ] Create `backtest/result.go` with performance metrics (returns, sharpe, max drawdown)
+- [ ] Create `pkg/backtest/result.go` with performance metrics (returns, sharpe, max drawdown)
 - [ ] Add support for context cancellation and timeouts
 - [ ] Implement position value tracking over time
-- [ ] Add comprehensive tests in `backtest/backtest_test.go` with mock strategies
+- [ ] Add comprehensive tests in `pkg/backtest/backtest_test.go` with mock strategies
 - [ ] Document backtest assumptions and limitations in godoc
 
 **Success**:
 - Engine runs strategies to completion using any Position implementations
 - Performance metrics calculate correctly for various return profiles
 - Context cancellation gracefully stops backtest
-- `go test ./backtest/` passes with >80% coverage
+- `go test ./pkg/backtest/` passes with >80% coverage
 - Engine code never references concrete mechanism types (mechanism-agnostic)
 - Backtest works with mock strategies combining multiple mechanism types
 

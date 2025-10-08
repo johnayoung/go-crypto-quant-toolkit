@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 )
 
 // Portfolio manages a collection of positions and cash holdings.

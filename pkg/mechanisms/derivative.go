@@ -3,7 +3,7 @@ package mechanisms
 import (
 	"context"
 
-	"github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 )
 
 // Derivative represents any derivative instrument including options, perpetuals,

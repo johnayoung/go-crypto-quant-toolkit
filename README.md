@@ -71,7 +71,7 @@ go get github.com/johnayoung/go-crypto-quant-toolkit
 ### Using Primitives
 
 ```go
-import "github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+import "github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 
 // Create type-safe financial values
 price := primitives.MustPrice(primitives.NewDecimal(1999))
@@ -87,7 +87,7 @@ totalValue := amount.MulPrice(price) // Amount * Price = Amount (in currency uni
 ```go
 import (
     "context"
-    "github.com/johnayoung/go-crypto-quant-toolkit/strategy"
+    "github.com/johnayoung/go-crypto-quant-toolkit/pkg/strategy"
 )
 
 type MyStrategy struct {

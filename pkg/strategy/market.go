@@ -5,7 +5,7 @@
 package strategy
 
 import (
-	"github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 )
 
 // MarketSnapshot provides a point-in-time view of market data.

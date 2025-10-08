@@ -3,7 +3,7 @@ package mechanisms_test
 import (
 	"testing"
 
-	"github.com/johnayoung/go-crypto-quant-toolkit/mechanisms"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/mechanisms"
 )
 
 // This file provides a framework for property-based testing of mechanism interfaces.

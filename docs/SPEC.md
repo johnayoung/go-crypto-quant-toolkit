@@ -243,14 +243,16 @@ type OrderBook interface {
 
 ## System Components
 
-### primitives/
+All components live under `pkg/` following Go best practices for library projects.
+
+### pkg/primitives/
 **Purpose:** Shared types used across all layers
 **Exports:**
 - `Price`, `Amount`, `Decimal` (financial types)
 - `Time`, `Duration` (temporal types)
 - Type-safe arithmetic preventing invalid operations
 
-### mechanisms/
+### pkg/mechanisms/
 **Purpose:** Define mechanism interface contracts
 **Exports:**
 - `MarketMechanism` (base interface)
@@ -259,7 +261,7 @@ type OrderBook interface {
 - `OrderBook` (CEX-style contract)
 **Post-MVP:** Community adds BatchAuction, FlashLoan, etc.
 
-### implementations/ (or impls/)
+### pkg/implementations/
 **Purpose:** Reference implementations of mechanism interfaces
 **Exports (MVP):**
 - `ConcentratedLiquidityPool` (implements LiquidityPool)
@@ -267,7 +269,7 @@ type OrderBook interface {
 - `PerpetualFuture` (implements Derivative)
 **Post-MVP:** Community adds more
 
-### strategy/
+### pkg/strategy/
 **Purpose:** Strategy framework (portfolio, positions, actions)
 **Exports:**
 - `Strategy` interface
@@ -276,7 +278,7 @@ type OrderBook interface {
 - `Action` interface
 - `MarketSnapshot` (market data abstraction)
 
-### backtest/
+### pkg/backtest/
 **Purpose:** Event-driven backtesting engine
 **Exports:**
 - `Engine` (runs backtests)
@@ -285,59 +287,63 @@ type OrderBook interface {
 
 ## File Structure
 
+Following the [golang-standards/project-layout](https://github.com/golang-standards/project-layout) best practices:
+
 ```
 go-crypto-quant-toolkit/
 ├── go.mod
 ├── go.sum
 ├── README.md
 ├── LICENSE
-├── docs/
+│
+├── docs/                      # Design and user documentation
 │   ├── BRIEF.md
 │   ├── SPEC.md
 │   ├── EXTENDING.md          # How to add mechanisms
 │   └── ARCHITECTURE.md        # Design decisions
 │
-├── primitives/
-│   ├── types.go              # Price, Amount, Decimal
-│   ├── time.go               # Time types
-│   └── primitives_test.go
+├── pkg/                       # Public library code (importable by external projects)
+│   ├── primitives/
+│   │   ├── types.go          # Price, Amount, Decimal
+│   │   ├── time.go           # Time types
+│   │   └── primitives_test.go
+│   │
+│   ├── mechanisms/            # Interface definitions only
+│   │   ├── mechanism.go      # Base MarketMechanism
+│   │   ├── liquidity_pool.go # LiquidityPool interface
+│   │   ├── derivative.go     # Derivative interface
+│   │   ├── orderbook.go      # OrderBook interface
+│   │   └── mechanisms_test.go # Interface contract tests
+│   │
+│   ├── implementations/       # Reference implementations
+│   │   ├── concentrated_liquidity/
+│   │   │   ├── pool.go       # Implements LiquidityPool
+│   │   │   ├── tick_math.go  # Tick calculations
+│   │   │   ├── il.go         # Impermanent loss
+│   │   │   └── pool_test.go
+│   │   ├── blackscholes/
+│   │   │   ├── option.go     # Implements Derivative
+│   │   │   ├── greeks.go     # Greeks calculations
+│   │   │   └── option_test.go
+│   │   └── perpetual/
+│   │       ├── future.go     # Implements Derivative
+│   │       ├── funding.go    # Funding rate logic
+│   │       └── future_test.go
+│   │
+│   ├── strategy/
+│   │   ├── strategy.go       # Strategy interface
+│   │   ├── portfolio.go      # Portfolio management
+│   │   ├── position.go       # Position interface
+│   │   ├── action.go         # Action interface
+│   │   ├── market.go         # MarketSnapshot
+│   │   └── strategy_test.go
+│   │
+│   └── backtest/
+│       ├── engine.go         # Backtest orchestration
+│       ├── result.go         # Performance metrics
+│       └── backtest_test.go
 │
-├── mechanisms/                # Interface definitions only
-│   ├── mechanism.go          # Base MarketMechanism
-│   ├── liquidity_pool.go     # LiquidityPool interface
-│   ├── derivative.go         # Derivative interface
-│   ├── orderbook.go          # OrderBook interface
-│   └── mechanisms_test.go    # Interface contract tests
-│
-├── implementations/           # Reference implementations
-│   ├── concentrated_liquidity/
-│   │   ├── pool.go           # Implements LiquidityPool
-│   │   ├── tick_math.go      # Tick calculations
-│   │   ├── il.go             # Impermanent loss
-│   │   └── pool_test.go
-│   ├── blackscholes/
-│   │   ├── option.go         # Implements Derivative
-│   │   ├── greeks.go         # Greeks calculations
-│   │   └── option_test.go
-│   └── perpetual/
-│       ├── future.go         # Implements Derivative
-│       ├── funding.go        # Funding rate logic
-│       └── future_test.go
-│
-├── strategy/
-│   ├── strategy.go           # Strategy interface
-│   ├── portfolio.go          # Portfolio management
-│   ├── position.go           # Position interface
-│   ├── action.go             # Action interface
-│   ├── market.go             # MarketSnapshot
-│   └── strategy_test.go
-│
-├── backtest/
-│   ├── engine.go             # Backtest orchestration
-│   ├── result.go             # Performance metrics
-│   └── backtest_test.go
-│
-└── examples/
+└── examples/                  # Example applications demonstrating library usage
     ├── simple_lp/
     │   ├── main.go           # Concentrated LP example
     │   └── README.md
@@ -349,6 +355,12 @@ go-crypto-quant-toolkit/
         └── README.md
 ```
 
+**Directory Structure Rationale:**
+- **`pkg/`**: Contains all public library code following Go best practices. This signals to users that these packages are safe to import and use in their own projects.
+- **`docs/`**: Project documentation at root level as per golang-standards.
+- **`examples/`**: Example applications demonstrating framework usage (not library code).
+- No `cmd/` or `internal/` yet as this is a pure library framework without private implementation details or command-line tools.
+
 ## Integration Patterns
 
 ### MVP Usage Pattern
@@ -356,8 +368,8 @@ go-crypto-quant-toolkit/
 **1. Use existing mechanism:**
 ```go
 import (
-    "github.com/yourorg/go-crypto-quant-toolkit/implementations/concentrated_liquidity"
-    "github.com/yourorg/go-crypto-quant-toolkit/strategy"
+    "github.com/yourorg/go-crypto-quant-toolkit/pkg/implementations/concentrated_liquidity"
+    "github.com/yourorg/go-crypto-quant-toolkit/pkg/strategy"
 )
 
 type MyStrategy struct {

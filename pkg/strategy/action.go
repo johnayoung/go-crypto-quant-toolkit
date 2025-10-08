@@ -3,7 +3,7 @@ package strategy
 import (
 	"fmt"
 
-	"github.com/johnayoung/go-crypto-quant-toolkit/primitives"
+	"github.com/johnayoung/go-crypto-quant-toolkit/pkg/primitives"
 )
 
 // Action represents a desired modification to a portfolio.
